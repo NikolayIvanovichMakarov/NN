@@ -92,17 +92,10 @@ void print_loading_params(NN_loading_params_t const * const p_loading_params)
     }
 }
 
+
 int main()
 {
     NN_loading_params_t loading_params;
 
-    if (parse("too_much_layer_count_file", &loading_params) == NN_NO_PROBLEM)
-    {
-        print_loading_params(&loading_params);
-    }
-    else
-    {
-        printf("Erorr_string %s\n",s_str_error_string);
-    }
     return 0;
 }
