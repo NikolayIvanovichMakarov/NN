@@ -1,6 +1,6 @@
 #include "parsing.h"
 
-static const char s_str_error_string[80] = {""};
+static char s_str_error_string[80] = {""};
 
 typedef struct NN_loading_params_s
 {
@@ -12,9 +12,9 @@ typedef struct NN_loading_params_s
 #define NN_PARSING_TOO_LONG_LAYER_COUNT 1
 #define NN_PARSING_NO_FILE_CONSIST 1
 #define NN_PARSING_NOT_CORRECT_DATA_FORMAT 1
-#define NN_NO_PROBLEM 1
+#define NN_NO_PROBLEM 0
 
-typedef int NN_PARSING_ERROR_CODE ;
+typedef int NN_PARSING_ERROR_CODE;
 
 #define NN_TRUE 1
 #define NN_FALSE 0
@@ -22,7 +22,7 @@ typedef int NN_PARSING_ERROR_CODE ;
 NN_PARSING_ERROR_CODE parse(char const * const str_filename, NN_loading_params_t * const p_loading_params)
 {
     #define ERR_EXIT(error_str,p_file, err_code) p_loading_params->layer_count = 0, sprintf(s_str_error_string, STR), fclose(p_file), err_code;
-    #define ERR_EXIT_FORMAT(p_file,err_code,error_str, ...) p_loading_params->layer_count = 0, sprintf(s_str_error_string, error_str, ##__VA_ARGS__), fclose(p_file), err_code
+    #define ERR_EXIT_FORMAT(p_file,err_code,error_str, ...) sprintf(s_str_error_string, error_str, ##__VA_ARGS__), p_loading_params->layer_count = 0, fclose(p_file), err_code
     #define CLEAN_NN_LOADING_PARAMS(p_lp) memset(p_lp, 0, sizeof(NN_loading_params_t));
     
     int i;
@@ -52,7 +52,7 @@ NN_PARSING_ERROR_CODE parse(char const * const str_filename, NN_loading_params_t
     {
         return ERR_EXIT_FORMAT(p_file_in, NN_PARSING_NOT_CORRECT_DATA_FORMAT, "Not correct file format: bias is broken");
     }
-    
+
 
 
     for (i = 0; i < p_loading_params->layer_count; ++i)
@@ -73,3 +73,36 @@ NN_PARSING_ERROR_CODE parse(char const * const str_filename, NN_loading_params_t
 
     return NN_NO_PROBLEM;
 };
+
+void print_loading_params(NN_loading_params_t const * const p_loading_params)
+{
+    printf("layer count %d\n", p_loading_params->layer_count);
+    int i;
+    if (p_loading_params->b_consist_bias!=0)
+    {
+        printf("bias consist\n");
+    }
+    else
+    {
+        printf("bias not consist");
+    }
+    for (i = 0; i < p_loading_params->layer_count; ++i)
+    {
+        printf("neuron count %d\n", p_loading_params->neurons_count[i]);
+    }
+}
+
+int main()
+{
+    NN_loading_params_t loading_params;
+
+    if (parse("too_much_layer_count_file", &loading_params) == NN_NO_PROBLEM)
+    {
+        print_loading_params(&loading_params);
+    }
+    else
+    {
+        printf("Erorr_string %s\n",s_str_error_string);
+    }
+    return 0;
+}
