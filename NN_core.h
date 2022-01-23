@@ -1,0 +1,1 @@
+NN_BOOL NN_build(NN_configure_t const * const p_configure_params);
