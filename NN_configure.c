@@ -15,7 +15,7 @@ void print_configure_params(NN_configure_t const * const p_configure_params)
     }
     for (i = 0; i < p_configure_params->layer_count; ++i)
     {
-        printf("neuron count %d on layer %d\n", (i + 1), p_configure_params->neurons_count[i]);
+        printf("neuron count %d on layer %d\n", p_configure_params->neurons_count[i],  (i + 1));
     }
 }
 

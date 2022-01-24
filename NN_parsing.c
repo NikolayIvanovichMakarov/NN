@@ -4,7 +4,7 @@
 
 extern char s_str_error_string[80];
 
-NN_PARSING_ERROR_CODE parse(char const * const str_filename, NN_configure_t * const p_loading_params)
+NN_BOOL NN_parse(char const * const str_filename, NN_configure_t * const p_loading_params)
 {
     int i;
     FILE *p_file_in;
@@ -56,5 +56,5 @@ NN_PARSING_ERROR_CODE parse(char const * const str_filename, NN_configure_t * co
         }
     }
 
-    return NN_NO_PROBLEM;
-};
+    return NN_TRUE;
+}
