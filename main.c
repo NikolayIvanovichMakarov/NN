@@ -37,7 +37,19 @@ ELEMENT samples[MAX_SAMPLES] =
      { 0.0, 1.0, 0.0, 1.0, {0.0, 0.0, 0.0, 1.0} }
 };
 
-
+int get_max_value(double const * const p_values, const size_t size)
+{
+    int max_i = 0;
+    int i;
+    for (i = 1; i < size; ++i)
+    {
+        if (p_values[i] > p_values[max_i])
+        {
+            max_i = i;
+        }
+    }
+    return max_i;
+}
 
 int main()
 {
@@ -55,6 +67,19 @@ int main()
         -1.648281,  -1.310184,  0.396202,   -11.899271  //31
     };
 
+    double weights_2[] = 
+    {
+        -1.1222,  3.697996,  1.810765, 
+        2.092458 ,  2.653695,   -2.260499,
+        -1.558963,  2.938535,   -0.005708,
+        5.145620,  1.543767,   -1.432555,
+        -3.073694,  -0.319861,  0.055421,             //15
+        -1.791943, 1.903503,   -2.883254,  3.565421,    //19
+        1.816552,   0.536550,   -1.941475,  -5.212408,   //23
+        -0.502582,  -3.827701,  3.079397,   3.899403,   //27
+        -0.648281,  -0.310184,  0.396202,   -0.899271  //31
+    };
+
     if (NN_parse("game.nc", &loading_params) == NN_TRUE)
     {
         printf("parsing ... ok\n");
@@ -62,12 +87,12 @@ int main()
         if (NN_build(&loading_params) == NN_TRUE)
         {
             printf("building ... ok\n");
-            NN_initialize_weights_with(&loading_params, weights, 31);
+            NN_initialize_weights_with(&loading_params, weights_2, 31);
         }
     }
-    printf("weights\n");
-    NN_print_weights(&loading_params);
     double input[4];
+    int correct_values;
+    correct_values = 0;
     for (int i  =0; i < MAX_SAMPLES; ++i)
     {
         input[0] = samples[i].health;
@@ -75,11 +100,14 @@ int main()
         input[2] = samples[i].gun;
         input[3] = samples[i].enemy;
         NN_push_values(&loading_params, input, 4);
-
-        feed_forward(&loading_params);
-        printf("%d) actual = %d\n", i, NN_get_result(&loading_params));
+        NN_feed_forward(&loading_params);
+        s_NN_calculate_errors(&loading_params,input);
+        NN_debug_print_errors(&loading_params);
+        if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
+            ++correct_values;
     }
 
+    printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);;
 
     return 0;
 }

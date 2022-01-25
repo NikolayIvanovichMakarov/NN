@@ -8,6 +8,9 @@ static double **s_g_NN_neurons = NULL;
 static double ***s_g_NN_weights = NULL;
 static double **s_g_NN_errors = NULL;
 
+#define LAST_LAYER(p_configure) (p_configure->layer_count-1)
+#define PRE_LAST_LAYER(p_configure) (p_configure->layer_count-2)
+
 double sigmoid(double val)
 {
     return (1.0 /(1.0 + exp(-val)));
@@ -23,6 +26,7 @@ double sigmoid_derivative(double val)
 NN_BOOL NN_build(NN_configure_t const * const p_configure_params)
 {
     int i,j;
+    int l_count;
 
     // allocate mem for neurons
     s_g_NN_neurons = NULL;
@@ -30,18 +34,17 @@ NN_BOOL NN_build(NN_configure_t const * const p_configure_params)
     for (i = 0; i < p_configure_params->layer_count; ++i)
     {
         s_g_NN_neurons[i] = NULL;
-        if (p_configure_params->b_consist_bias)
-            s_g_NN_neurons[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i] + i);
+        if (p_configure_params->b_consist_bias && (i < (LAST_LAYER(p_configure_params))))
+            s_g_NN_neurons[i] = malloc (sizeof(double) * (p_configure_params->neurons_count[i] + 1));
         else
-            s_g_NN_neurons[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i] + i);
+            s_g_NN_neurons[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i]);
     }
 
     // allocate mem for weights
     s_g_NN_weights = NULL;
-    s_g_NN_weights = malloc(sizeof(double**) * p_configure_params->layer_count-1);
-    for (i = 0; i < p_configure_params->layer_count -1; ++i)
+    s_g_NN_weights = malloc(sizeof(double**) * (p_configure_params->layer_count-1));
+    for (i = 0; i < LAST_LAYER(p_configure_params); ++i)
     {
-        int l_count;
         if (p_configure_params->b_consist_bias)
         {
             l_count = (p_configure_params->neurons_count[i] +1);
@@ -60,14 +63,10 @@ NN_BOOL NN_build(NN_configure_t const * const p_configure_params)
 
     // allocate mem for errors    
     s_g_NN_errors = NULL;
-    s_g_NN_errors = malloc (sizeof(double*) * p_configure_params->layer_count);
-    for (i = 0; i < p_configure_params->layer_count; ++i)
+    s_g_NN_errors = malloc (sizeof(double*) * (p_configure_params->layer_count-1));
+    for (i = 0; i < (p_configure_params->layer_count-1); ++i)
     {
-        s_g_NN_errors[i] = NULL;
-        if (p_configure_params->b_consist_bias)
-            s_g_NN_errors[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i] + i);
-        else
-            s_g_NN_errors[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i] + i);
+        s_g_NN_errors[i] = malloc (sizeof(double) * p_configure_params->neurons_count[i+1]);
     }
 
     return NN_TRUE;
@@ -93,7 +92,7 @@ void NN_initialize_weights_with(NN_configure_t const * const p_configure, double
     }
 }
 
-void NN_print_weights(NN_configure_t const * const p_configure)
+void NN_debug_print_weights(NN_configure_t const * const p_configure)
 {    
     int i,j,j2, w_count = 0;
     printf("===========\n");
@@ -109,6 +108,22 @@ void NN_print_weights(NN_configure_t const * const p_configure)
             }
             printf("\n");
         }
+    }
+    printf("===========\n");
+}
+
+void NN_debug_print_errors(NN_configure_t const * const p_configure)
+{
+    printf("===========\n");
+    int layer_i, neuron_i;
+    for (layer_i = p_configure->layer_count-2; layer_i >= 0; --layer_i)
+    {
+        printf("layer %d\n\t",layer_i);
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            printf("%lf ", layer_i, s_g_NN_errors[layer_i][neuron_i]);
+        }
+        printf("\n");
     }
     printf("===========\n");
 }
@@ -138,22 +153,81 @@ int NN_get_result(NN_configure_t const * const p_configure)
     return max_i;
 }
 
-void feed_forward(NN_configure_t const * const p_configure)
+void s_NN_calculate_errors(NN_configure_t const * const p_configure, double const * const p_target)
+{
+    int layer_i, neuron_i, neuron_j;
+
+    // calculate errors for output layer
+    layer_i = LAST_LAYER(p_configure);//p_configure->layer_count - 1; // last layer
+    for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+    {
+        s_g_NN_errors[p_configure->layer_count - 2][neuron_i] = (p_target[neuron_i] - s_g_NN_neurons[layer_i][neuron_i]) * sigmoid_derivative(s_g_NN_neurons[layer_i][neuron_i]);
+    }
+    
+    // calculate errors for hidden layer
+    printf("calc for hidden layer\n");
+    for (layer_i = p_configure->layer_count - 3; layer_i >= 0; --layer_i)
+    {
+        printf("layer = %d\n",layer_i);
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            s_g_NN_errors[layer_i][neuron_i] = 0.0;
+            for (neuron_j = 0; neuron_j < p_configure->neurons_count[layer_i + 1]; ++neuron_j)
+            {
+                s_g_NN_errors[layer_i][neuron_i] += 
+                s_g_NN_errors[layer_i+1][neuron_j] * s_g_NN_weights[layer_i][neuron_i][neuron_j];
+            }
+            s_g_NN_errors[layer_i][neuron_i] *= sigmoid_derivative( s_g_NN_neurons[layer_i][neuron_i]);
+        }
+    }
+}
+
+void s_NN_update_weights(NN_configure_t const * const p_configure, const double learn_rate)
+{
+    int layer_i, neuron_i;
+    // forwading layers
+    for (layer_i = PRE_LAST_LAYER(p_configure); layer_i >= 0; --layer_i)
+    {
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            s_g_NN_weights[layer_i][neuron_i] = ;
+        }
+    }
+}
+
+void NN_backpropagate(NN_configure_t const * const p_configure, double const * const p_target, const double learn_rate)
+{
+    int layer_i, neuron_i, neuron_j;
+    layer_i = p_configure->layer_count - 1;
+    for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+            s_g_NN_errors[p_configure->layer_count - 2][neuron_i] = (p_target[neuron_i] - s_g_NN_neurons[layer_i][neuron_i]) * sigmoid_derivative(s_g_NN_neurons[layer_i][neuron_i]);
+    
+    for (layer_i = PRE_LAST_LAYER(p_configure); layer_i >= 0; --layer_i)
+    {
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            s_g_NN_errors[layer_i][neuron_i] = 0.0;
+            for (neuron_j = 0; neuron_j < p_configure->neurons_count[layer_i + 1]; ++neuron_j)
+            {
+                s_g_NN_neurons[layer_i][neuron_i] = 0;
+            }
+        }
+    }
+
+}
+
+void NN_feed_forward(NN_configure_t const * const p_configure)
 {
     int i, j, j2;
-    for (j = 0; j < p_configure->neurons_count[0]; ++j)
-    {
-        printf("0 neuron: %lf\n",s_g_NN_neurons[0][j]);
-    }
+
     for (i = 1; (i < p_configure->layer_count); ++i)
     {
         for (j = 0; j < p_configure->neurons_count[i]; ++j)
         {
             s_g_NN_neurons[i][j] = 0;
-            printf("\nprev: ");
+
             for (j2 = 0; j2 < p_configure->neurons_count[i-1]; ++j2)
             {
-                printf("%lf ",s_g_NN_neurons[i-1][j2]);
                 s_g_NN_neurons[i][j] += s_g_NN_weights[i-1][j2][j] * s_g_NN_neurons[i-1][j2];
             }
             if (p_configure->b_consist_bias)
@@ -161,11 +235,6 @@ void feed_forward(NN_configure_t const * const p_configure)
                 s_g_NN_neurons[i][j] += s_g_NN_weights[i-1][p_configure->neurons_count[i-1]][j];
             }
             s_g_NN_neurons[i][j] = sigmoid(s_g_NN_neurons[i][j]);
-            printf("new neuron: %lf\n",s_g_NN_neurons[i][j]);
         }
     }
-}
-
-void back_propagate(NN_configure_t const * const p_configure,double const * const target)
-{
 }
