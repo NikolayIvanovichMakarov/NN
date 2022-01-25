@@ -10,6 +10,7 @@ static double **s_g_NN_errors = NULL;
 
 #define LAST_LAYER(p_configure) (p_configure->layer_count-1)
 #define PRE_LAST_LAYER(p_configure) (p_configure->layer_count-2)
+#define NEURON_AT_LAYER(p_configure,layer) (p_configure->neurons_count[layer] + (p_configure->b_consist_bias != 0 ? 1:0)
 
 double sigmoid(double val)
 {
@@ -165,10 +166,8 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
     }
     
     // calculate errors for hidden layer
-    printf("calc for hidden layer\n");
     for (layer_i = p_configure->layer_count - 3; layer_i >= 0; --layer_i)
     {
-        printf("layer = %d\n",layer_i);
         for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
         {
             s_g_NN_errors[layer_i][neuron_i] = 0.0;
@@ -184,13 +183,17 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
 
 void s_NN_update_weights(NN_configure_t const * const p_configure, const double learn_rate)
 {
-    int layer_i, neuron_i;
-    // forwading layers
+    int layer_i, neuron_i, neuron_j;
+    // forwading layers from
     for (layer_i = PRE_LAST_LAYER(p_configure); layer_i >= 0; --layer_i)
     {
-        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        // forwarding 
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i] + (p_configure->b_consist_bias != 0 ? 1:0); ++neuron_i)
         {
-            s_g_NN_weights[layer_i][neuron_i] = ;
+            for (neuron_j = 0; neuron_j < p_configure->neurons_count[layer_i+1]; ++neuron_j)
+            {
+                s_g_NN_weights[layer_i][neuron_i][neuron_j] += learn_rate * s_g_NN_neurons[layer_i][neuron_i] * s_g_NN_neurons[layer_i][neuron_i];
+            }
         }
     }
 }
