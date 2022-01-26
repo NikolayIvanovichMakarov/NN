@@ -18,3 +18,5 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
 void s_NN_update_weights(NN_configure_t const * const p_configure, const double learn_rate);
 
 void NN_debug_print_errors(NN_configure_t const * const p_configure);
+
+void NN_debug_print_errors_into_file(NN_configure_t const * const p_configure,char const * const f_file);

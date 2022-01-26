@@ -1,6 +1,7 @@
 #include "NN_configure.h"
 #include "NN_types.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 extern char s_str_error_string[80];
 
@@ -179,6 +180,31 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
             s_g_NN_errors[layer_i][neuron_i] *= sigmoid_derivative( s_g_NN_neurons[layer_i][neuron_i]);
         }
     }
+}
+
+void NN_debug_print_errors_into_file(NN_configure_t const * const p_configure, char const * const f_file)
+{
+    FILE * s_file_errors = NULL;
+
+    int layer_i, neuron_i;
+    layer_i = LAST_LAYER(p_configure);//p_configure->layer_count - 1; // last layer
+    
+    if (s_file_errors == NULL)
+        s_file_errors = fopen(f_file,"w");
+    
+    fprintf(s_file_errors,"===========\n");
+    for (layer_i = p_configure->layer_count-2; layer_i >= 0; --layer_i)
+    {
+        fprintf(s_file_errors,"layer %d\n\t",layer_i);
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            fprintf(s_file_errors,"%lf ", layer_i, s_g_NN_errors[layer_i][neuron_i]);
+        }
+        fprintf(s_file_errors,"\n");
+    }
+    
+    fprintf(s_file_errors,"===========\n");
+    fclose(s_file_errors);
 }
 
 void s_NN_update_weights(NN_configure_t const * const p_configure, const double learn_rate)
