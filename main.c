@@ -93,10 +93,10 @@ int main()
     double input[4];
     int correct_values;
     int j;
-    for (j = 0; j < 1; ++j)
+    for (j = 0; j < 1000000; ++j)
     {
         correct_values = 0;
-        for (int i  =0; i < 1; ++i)
+        for (int i  =0; i < MAX_SAMPLES; ++i)
         {
             input[0] = samples[i].health;
             input[1] = samples[i].knife;
@@ -105,14 +105,14 @@ int main()
             NN_push_values(&loading_params, input, 4);
             NN_feed_forward(&loading_params);
             s_NN_calculate_errors(&loading_params,input);
-            NN_debug_print_errors_into_file(&loading_params, "errors.txt");
+            //NN_debug_print_errors_into_file(&loading_params, "errors.txt");
             //NN_debug_print_errors(&loading_params);
             s_NN_update_weights(&loading_params,0.2);
             if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
                 ++correct_values;
         }
         if ((j % 1000) == 0)
-        printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);;
+            printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);;
     }
 
 
