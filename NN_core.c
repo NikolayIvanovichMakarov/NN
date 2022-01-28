@@ -77,19 +77,16 @@ NN_BOOL NN_build(NN_configure_t const * const p_configure_params)
 void NN_initialize_weights_with(NN_configure_t const * const p_configure, double const * const p_weights, const size_t weight_count)
 {
     int i,j,j2, w_count = 0;
-    printf("0 .. %d\n", (p_configure->layer_count - 1));
     for (i = 0; i < (p_configure->layer_count - 1) && (w_count < weight_count); ++i)
     {
-        printf("\t0 .. %d\n", (p_configure->neurons_count[i] + ((p_configure->b_consist_bias != 0) ? 1:0)));
         for (j = 0; j < (p_configure->neurons_count[i] + ((p_configure->b_consist_bias != 0) ? 1:0)) && (w_count < weight_count); ++j)
         {
-            printf("\t\t0 .. %d ", p_configure->neurons_count[i+1]);
             for (j2 = 0; j2 < p_configure->neurons_count[i+1] && (w_count < weight_count); ++j2)
             {
                 s_g_NN_weights[i][j][j2] = p_weights[w_count];
+                printf("weight l %d n %d nn %d   %lf\n",i,j,j2, s_g_NN_weights[i][j][j2]);
                 ++w_count;
             }
-            printf("end\n");
         }
     }
 }
@@ -116,7 +113,6 @@ void NN_debug_print_weights(NN_configure_t const * const p_configure)
 
 void NN_debug_print_errors(NN_configure_t const * const p_configure)
 {
-    printf("===========\n");
     int layer_i, neuron_i;
     for (layer_i = p_configure->layer_count-2; layer_i >= 0; --layer_i)
     {
@@ -127,7 +123,6 @@ void NN_debug_print_errors(NN_configure_t const * const p_configure)
         }
         printf("\n");
     }
-    printf("===========\n");
 }
 
 void NN_debug_print_errors_into_file(NN_configure_t const * const p_configure, char const * const f_file)
@@ -140,19 +135,64 @@ void NN_debug_print_errors_into_file(NN_configure_t const * const p_configure, c
     if (s_file_errors == NULL)
         s_file_errors = fopen(f_file,"w");
     
-    fprintf(s_file_errors,"===========\n");
     for (layer_i = p_configure->layer_count-2; layer_i >= 0; --layer_i)
     {
         fprintf(s_file_errors,"layer %d\n\t",layer_i);
-        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i+1]; ++neuron_i)
         {
             fprintf(s_file_errors,"%lf ", layer_i, s_g_NN_errors[layer_i][neuron_i]);
         }
         fprintf(s_file_errors,"\n");
     }
     
-    fprintf(s_file_errors,"===========\n");
+
     fclose(s_file_errors);
+}
+
+void NN_debug_print_neurons_into_file(NN_configure_t const * const p_configure, char const * const f_file)
+{
+    FILE * f_neurons = NULL;
+    int layer_i, neuron_i;
+    if (f_neurons == NULL)
+        f_neurons = fopen(f_file,"w");
+    
+    for (layer_i = 0; layer_i < p_configure->layer_count; ++layer_i)
+    {
+        fprintf(f_neurons,"layer %d\n\t",layer_i);
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            fprintf(f_neurons, "%lf ", s_g_NN_neurons[layer_i][neuron_i]);
+        }
+        fprintf(f_neurons,"\n");
+    }
+    fclose(f_neurons);
+}
+
+
+void NN_debug_print_weights_into_file(NN_configure_t const * const p_configure,char const * const f_file)
+{
+    FILE * f_weights = NULL;
+    int layer_i, neuron_i, next_layer_neuron_i;
+    if (f_weights == NULL)
+        f_weights = fopen(f_file,"w");
+    
+    for (layer_i = 0; layer_i < (p_configure->layer_count - 1); ++layer_i)
+    {
+        fprintf(f_weights, "layer %d\n", layer_i);
+
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i] + ((p_configure->b_consist_bias != 0) ? 1:0); ++neuron_i)
+        {
+            fprintf(f_weights, "\tneuron %d\t\n\t\t", neuron_i);
+
+            for (next_layer_neuron_i = 0; next_layer_neuron_i < p_configure->neurons_count[layer_i+1]; ++next_layer_neuron_i)
+            {
+                fprintf(f_weights,"%lf ",s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i]);
+            }
+            fprintf(f_weights,"\n");
+        }
+    }
+
+    fclose(f_weights);
 }
 
 void NN_push_values(NN_configure_t const * const p_configure, double const * const p_values, const size_t value_count)
@@ -190,7 +230,23 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
     {
         s_g_NN_errors[layer_i - 1][neuron_i] = (p_target[neuron_i] - s_g_NN_neurons[layer_i][neuron_i]) * sigmoid_derivative(s_g_NN_neurons[layer_i][neuron_i]);
     }
-    
+    //printf("calc errors\n");
+
+    for (layer_i = PRE_LAST_LAYER(p_configure); layer_i > 0; --layer_i)
+    {
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
+        {
+            for (neuron_j = 0; neuron_j < p_configure->neurons_count[layer_i + 1]; ++neuron_j)
+            {
+                //printf("error[%d][%d] += %lf * %lf\n\n",layer_i-1,neuron_i, s_g_NN_errors[layer_i][neuron_j],s_g_NN_weights[layer_i][neuron_i][neuron_j]);
+                s_g_NN_errors[layer_i-1][neuron_i] += 
+                    s_g_NN_errors[layer_i][neuron_j] * s_g_NN_weights[layer_i][neuron_i][neuron_j];
+            }
+            s_g_NN_errors[layer_i - 1][neuron_i] *= sigmoid_derivative( s_g_NN_neurons[layer_i][neuron_i]);
+        }
+    }
+
+    /*
     // calculate errors for hidden layer
     for (layer_i = p_configure->layer_count - 3; layer_i >= 0; --layer_i)
     {
@@ -199,62 +255,74 @@ void s_NN_calculate_errors(NN_configure_t const * const p_configure, double cons
             s_g_NN_errors[layer_i][neuron_i] = 0.0;
             for (neuron_j = 0; neuron_j < p_configure->neurons_count[layer_i + 1]; ++neuron_j)
             {
+                printf("error[%d][%d] += %lf * %lf\n\n",layer_i,neuron_i, s_g_NN_errors[layer_i+1][neuron_j],s_g_NN_weights[layer_i+1][neuron_i][neuron_j]);
                 s_g_NN_errors[layer_i][neuron_i] += 
-                    s_g_NN_errors[layer_i+1][neuron_j] * s_g_NN_weights[layer_i][neuron_i][neuron_j];
+                    s_g_NN_errors[layer_i+1][neuron_i] * s_g_NN_weights[layer_i+1][neuron_i][neuron_j];
             }
-            s_g_NN_errors[layer_i][neuron_i] *= sigmoid_derivative( s_g_NN_neurons[layer_i][neuron_i]);
+            s_g_NN_errors[layer_i][neuron_i] *= sigmoid_derivative( s_g_NN_neurons[layer_i+1][neuron_i]);
         }
     }
+    */
 }
 
 void s_NN_update_weights(NN_configure_t const * const p_configure, const double learn_rate)
 {
     int layer_i, neuron_i, next_layer_neuron_i;
-    // forwading layers from
+
+    // forwading [1,0] layers from 3 - 2 = 1   
     for (layer_i = PRE_LAST_LAYER(p_configure); layer_i >= 0; --layer_i)
     {
-        // hid / input
+        // out / hid
         for (next_layer_neuron_i = 0; next_layer_neuron_i < p_configure->neurons_count[layer_i+1]; ++next_layer_neuron_i)
         {
-            // out hid
+            // hid / input
             for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
             {
+                double prev =  s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i];
                 s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i] += 
                     learn_rate * 
-                    s_g_NN_errors[layer_i][neuron_i] * 
-                    s_g_NN_neurons[layer_i][next_layer_neuron_i];
+                    s_g_NN_errors[layer_i][next_layer_neuron_i] * 
+                    s_g_NN_neurons[layer_i][neuron_i];
+
+                //printf("w[%d][%d][%d] (%lf) += %lf * %lf * %lf = %lf\n", layer_i, neuron_i, next_layer_neuron_i, 
+                    //prev,
+                    //learn_rate, s_g_NN_errors[layer_i][next_layer_neuron_i], s_g_NN_neurons[layer_i][neuron_i],
+                    //s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i]
+                    //);
+            }
+            if (p_configure->b_consist_bias)
+            {
+                //printf("w[%d][%d][%d] += %lf * %lf \n",layer_i, p_configure->neurons_count[layer_i],next_layer_neuron_i, learn_rate,s_g_NN_errors[layer_i][p_configure->neurons_count[layer_i]]);
+                s_g_NN_weights[layer_i][p_configure->neurons_count[layer_i]][next_layer_neuron_i] += 
+                    learn_rate * 
+                    s_g_NN_errors[layer_i][next_layer_neuron_i];
             }
         }
-        next_layer_neuron_i = p_configure->neurons_count[layer_i+1];
-        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
-        {
-            s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i] += 
-                learn_rate * 
-                s_g_NN_errors[layer_i][neuron_i] * 
-                s_g_NN_neurons[layer_i][next_layer_neuron_i];
-        }
+        //printf("\n");
     }
 }
 
 void NN_feed_forward(NN_configure_t const * const p_configure)
 {
-    int i, j, j2;
+    int layer_i, neuron_i, prev_layer_neuron_i ;
 
-    for (i = 1; (i < p_configure->layer_count); ++i)
+    for (layer_i = 1; (layer_i < p_configure->layer_count); ++layer_i)
     {
-        for (j = 0; j < p_configure->neurons_count[i]; ++j)
+        for (neuron_i = 0; neuron_i < p_configure->neurons_count[layer_i]; ++neuron_i)
         {
-            s_g_NN_neurons[i][j] = 0;
-
-            for (j2 = 0; j2 < p_configure->neurons_count[i-1]; ++j2)
+            s_g_NN_neurons[layer_i][neuron_i] = 0;
+            for (prev_layer_neuron_i = 0; prev_layer_neuron_i < p_configure->neurons_count[layer_i-1]; ++prev_layer_neuron_i)
             {
-                s_g_NN_neurons[i][j] += s_g_NN_weights[i-1][j2][j] * s_g_NN_neurons[i-1][j2];
+                s_g_NN_neurons[layer_i][neuron_i] += 
+                    s_g_NN_weights[layer_i-1][prev_layer_neuron_i][neuron_i] * 
+                    s_g_NN_neurons[layer_i-1][prev_layer_neuron_i];
             }
             if (p_configure->b_consist_bias)
             {
-                s_g_NN_neurons[i][j] += s_g_NN_weights[i-1][p_configure->neurons_count[i-1]][j];
+                s_g_NN_neurons[layer_i][neuron_i] += 
+                    s_g_NN_weights[layer_i-1][p_configure->neurons_count[layer_i-1]][neuron_i];
             }
-            s_g_NN_neurons[i][j] = sigmoid(s_g_NN_neurons[i][j]);
+            s_g_NN_neurons[layer_i][neuron_i] = sigmoid(s_g_NN_neurons[layer_i][neuron_i]);
         }
     }
 }

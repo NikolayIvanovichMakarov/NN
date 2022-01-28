@@ -93,7 +93,7 @@ int main()
     double input[4];
     int correct_values;
     int j;
-    for (j = 0; j < 1000000; ++j)
+    for (j = 0; j < 100000; ++j)
     {
         correct_values = 0;
         for (int i  =0; i < MAX_SAMPLES; ++i)
@@ -104,15 +104,18 @@ int main()
             input[3] = samples[i].enemy;
             NN_push_values(&loading_params, input, 4);
             NN_feed_forward(&loading_params);
-            s_NN_calculate_errors(&loading_params,input);
+            //NN_debug_print_weights_into_file(&loading_params, "weights.txt");
+            if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
+                ++correct_values;
+            //NN_debug_print_neurons_into_file(&loading_params, "neurons.txt");
+            s_NN_calculate_errors(&loading_params,samples[i].out);
             //NN_debug_print_errors_into_file(&loading_params, "errors.txt");
             //NN_debug_print_errors(&loading_params);
             s_NN_update_weights(&loading_params,0.2);
-            if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
-                ++correct_values;
         }
         if ((j % 1000) == 0)
-            printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);;
+            printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);
+
     }
 
 

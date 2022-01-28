@@ -19,4 +19,6 @@ void s_NN_update_weights(NN_configure_t const * const p_configure, const double 
 
 void NN_debug_print_errors(NN_configure_t const * const p_configure);
 
+void NN_debug_print_neurons_into_file(NN_configure_t const * const p_configure, char const * const f_file);
 void NN_debug_print_errors_into_file(NN_configure_t const * const p_configure,char const * const f_file);
+void NN_debug_print_weights_into_file(NN_configure_t const * const p_configure,char const * const f_file);
