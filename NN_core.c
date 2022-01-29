@@ -2,7 +2,7 @@
 #include "NN_types.h"
 #include <stdlib.h>
 #include <stdio.h>
-
+#include <math.h>
 extern char s_str_error_string[80];
 
 static double **s_g_NN_neurons = NULL;
@@ -84,7 +84,7 @@ void NN_initialize_weights_with(NN_configure_t const * const p_configure, double
             for (j2 = 0; j2 < p_configure->neurons_count[i+1] && (w_count < weight_count); ++j2)
             {
                 s_g_NN_weights[i][j][j2] = p_weights[w_count];
-                printf("weight l %d n %d nn %d   %lf\n",i,j,j2, s_g_NN_weights[i][j][j2]);
+                //printf("weight l %d n %d nn %d   %lf\n",i,j,j2, s_g_NN_weights[i][j][j2]);
                 ++w_count;
             }
         }

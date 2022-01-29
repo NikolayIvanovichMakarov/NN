@@ -1,3 +1,4 @@
+#include <string.h>
 char s_str_error_string[80] = {"No error!"};
 char s_str_buf_error_string[80] = {""};
 

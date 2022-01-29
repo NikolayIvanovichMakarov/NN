@@ -2,6 +2,10 @@
 #include "NN_types.h"
 #include "NN_parsing.h"
 #include "NN_core.h"
+#include <math.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
 
 typedef struct 
 {
@@ -51,9 +55,84 @@ int get_max_value(double const * const p_values, const size_t size)
     return max_i;
 }
 
-int main()
+double benchmark_function (NN_configure_t const * const p_configure, double const * const p_weights, const size_t size)
+{
+    int test_i, wrong_answer = 0;
+    double input[4];
+    NN_initialize_weights_with(p_configure, p_weights, size);
+    
+    for (int test_i  =0; test_i < MAX_SAMPLES; ++test_i)
+    {
+        input[0] = samples[test_i].health;
+        input[1] = samples[test_i].knife;
+        input[2] = samples[test_i].gun;
+        input[3] = samples[test_i].enemy;
+
+        NN_push_values(p_configure, input, 4);
+        NN_feed_forward(p_configure);
+
+        if (NN_get_result(p_configure) != get_max_value(samples[test_i].out,4))
+        {
+            ++wrong_answer;
+        }
+    }
+
+    return ((double)wrong_answer)/MAX_SAMPLES; // [0, 18]
+}
+
+extern double PI = 3.1415926535897932384626433832795029;
+
+double my_random_func()
+{
+    double x=-1;
+    while ((x<0.0) || (x > 1.0))
+    {
+        x = ((double)rand())/RAND_MAX;//RAND_MAX+1 // from 0 1
+    }
+    return x;
+}
+
+#define RANDOM() my_random_func()
+
+//!
+void generatin_population (double **population, int pop_size, double a, double b, int N)
+{
+    for (int i=0;i!=pop_size;i++)
+    {
+        for (int j=0;j!=N;j++)
+        {
+            population[i][j] = RANDOM()*(b-a)-a;
+        }
+    }
+}
+
+void copy_array(double ** x, double **y, int pop_size, int N)
+{
+    for (int i=0; i != pop_size; i++)
+    {
+        memcpy(y[i],x[i], sizeof(x[0]) * N);
+    }
+}
+
+void indecies_generation(int *r1, int *r2, int *r3, int pop_size)
+{
+    int a = RANDOM()*(pop_size-1);
+
+    (*r1) = (*r2) = (*r3) = a;
+
+    while ( ((*r1) == (*r2)) || ((*r1) == (*r3)) || ((*r2) == (*r3)))
+    {
+        (*r1) = RANDOM()*(pop_size-1);
+        (*r2) = RANDOM()*(pop_size-1);
+        (*r3) = RANDOM()*(pop_size-1);
+    }
+
+}
+
+int main(int argc, char **argv)
 {
     NN_configure_t loading_params;
+    srand(time(0));
     double weights[] = 
     {
         -7.681681,  -0.697996,  5.810765, 
@@ -90,31 +169,115 @@ int main()
             NN_initialize_weights_with(&loading_params, weights_2, 31);
         }
     }
-    double input[4];
-    int correct_values;
-    int j;
-    for (j = 0; j < 100000; ++j)
+    int pop_size = 200;              // Размер популяции
+
+    if (argc > 1)
     {
-        correct_values = 0;
-        for (int i  =0; i < MAX_SAMPLES; ++i)
+        pop_size = atoi(argv[1]);
+    }
+    // DE 
+    double a = -10.0;               // Границы интервела поиска
+    double b = 10.0;                //
+    const int N = 31;               // Размерность задачи. Вектор весов
+    int FEV = 10000000;             // Кол-во вычислений
+    double best_fitness = 50;    // лучшая пригодность
+    double **population = malloc(sizeof(double *) * pop_size);
+    double **population_new = malloc(sizeof(double *) * pop_size);; // lines
+
+    printf("pop_size = %d\n",pop_size);
+    for (int count = 0; count < pop_size; count++)
+    {
+        population [count] = malloc(sizeof(double) * N);
+        population_new [count] = malloc(sizeof(double) * N);
+    }
+
+    double *solution = malloc(sizeof(double) * N);
+    double *fitness = malloc(sizeof(double) * pop_size);
+    double *fitness_new = malloc(sizeof(double) * pop_size);
+    double *u = malloc(sizeof(double) * N);
+    double test;
+
+    //DE starts
+    generatin_population (population, pop_size, a, b, N);
+    copy_array(population, population_new, pop_size, N);
+
+
+    for (int i=0; i!=pop_size; i++)
+    {
+        for (int j=0; j!=N; j++)
         {
-            input[0] = samples[i].health;
-            input[1] = samples[i].knife;
-            input[2] = samples[i].gun;
-            input[3] = samples[i].enemy;
-            NN_push_values(&loading_params, input, 4);
-            NN_feed_forward(&loading_params);
-            //NN_debug_print_weights_into_file(&loading_params, "weights.txt");
-            if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
-                ++correct_values;
-            //NN_debug_print_neurons_into_file(&loading_params, "neurons.txt");
-            s_NN_calculate_errors(&loading_params,samples[i].out);
-            //NN_debug_print_errors_into_file(&loading_params, "errors.txt");
-            //NN_debug_print_errors(&loading_params);
-            s_NN_update_weights(&loading_params,0.2);
+            solution[j]=population[i][j];
         }
-        if ((j % 1000) == 0)
-            printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);
+
+        fitness[i] =  benchmark_function(&loading_params, solution, N);
+        fitness_new[i] = fitness[i];
+        FEV--;
+        if (fitness[i]<=best_fitness)
+        {
+            best_fitness = fitness[i];
+        }
+    }
+
+    while (FEV>0)
+    {
+
+        for (int i=0; i!=pop_size; i++)
+        {
+            int r1, r2, r3;
+            indecies_generation(&r1, &r2, &r3, pop_size);
+            double CR = RANDOM()*(0.9-0.1)-0.1;
+            double F = RANDOM()*(0.9-0.1)-0.1;
+            int jrand = RANDOM()*(N-1);
+
+            for (int j=0; j!=N; j++)
+            {
+                if (CR<RANDOM() || j == jrand)
+                {
+                    u[j] = population[i][j]+F*(population[i][j]-population[r1][j])+F*(population[r2][j]-population[r3][j]);
+                }
+                else
+                    u[j] = population[i][j];
+            }
+            
+            for (int j=0; j!=N; j++)
+            {
+                if (u[j] < a )
+                {
+                    u[j] = a;
+                }
+                else if (u[j] > b)
+                    u[j] = b;// population[i][j];
+            }
+
+
+            test = benchmark_function(&loading_params,u, N);
+            //printf("test = %lf\n",test);
+            FEV--;
+
+            if (test<=fitness[i])
+            {
+                fitness_new[i] = test;
+                for (int j=0; j!=N; j++)
+                {
+                    population_new[i][j]=u[j];
+                }
+                if (test < best_fitness)
+                {
+                    best_fitness = test;
+                    printf("test = %lf\n",test);
+                    //cout<<"FEV: "<<FEV<<" "<<best_fitness<<endl;
+                }
+            }
+        }
+
+        for (int i=0;i!=pop_size; i++)
+        {
+            for (int j=0;j!=N;j++)
+            {
+                population[i][j] = population_new[i][j];
+            }
+            fitness[i] = fitness_new[i];
+        }
 
     }
 
