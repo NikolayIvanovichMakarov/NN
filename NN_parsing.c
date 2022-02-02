@@ -1,6 +1,7 @@
 #include "NN_types.h"
 #include "NN_parsing.h"
 #include "NN_configure.h"
+#include "NN_learn_dataset.h"
 
 extern char s_str_error_string[80];
 
@@ -56,5 +57,83 @@ NN_BOOL NN_parse(char const * const str_filename, NN_configure_t * const p_loadi
         }
     }
 
+    return NN_TRUE;
+}
+
+static NN_BOOL s_NN_alloc_line(NN_configure_t  const * const p_configure_params, NN_learn_line_t * const p_learn_line)
+{
+    p_learn_line->p_inputs = NULL;
+    p_learn_line->p_inputs = malloc(sizeof(double) * p_configure_params->neurons_count[0]);
+    if (p_learn_line == NULL)
+        return NN_FALSE;
+
+    p_learn_line->p_targets = NULL;
+    p_learn_line->p_targets = malloc(sizeof(double) * p_configure_params->neurons_count[p_configure_params->layer_count-1]);
+    if (p_learn_line->p_targets == NULL)
+    {
+        free(p_learn_line->p_targets);
+        return NN_FALSE;
+    }
+    return NN_TRUE;
+}
+
+static NN_BOOL s_NN_learn_line_parse(FILE * const p_file, NN_configure_t  const * const p_configure_params, NN_learn_line_t * const p_learn_line)
+{
+    int test_line_i;
+    if (p_configure_params == NULL)
+        return NN_FALSE;
+
+    for (test_line_i = 0; test_line_i < p_configure_params->neurons_count[0]; ++test_line_i)
+    {
+        fscanf(p_file, "%lf",&p_learn_line->p_inputs[test_line_i]);
+    }
+
+    for (test_line_i = 0; test_line_i < p_configure_params->neurons_count[p_configure_params->layer_count-1]; ++test_line_i)
+    {
+        fscanf(p_file, "%lf",&p_learn_line->p_targets[test_line_i]);
+    }
+}
+
+NN_BOOL NN_learn_dataset_parse(char const * const str_filename, NN_configure_t const * const p_loading_params, NN_learn_dataset_t * const p_learn_dataset )
+{
+    FILE *p_file_in;
+    p_file_in = fopen(str_filename, "r");
+    int line_count = 0;
+    int i;
+    if (p_file_in == NULL)
+    {
+        return NN_FALSE;
+    }
+
+    if (p_learn_dataset == NULL)
+    {
+        fclose(p_file_in);
+        return NN_FALSE;
+    }
+
+    fscanf(p_file_in,"%d",&p_learn_dataset->total_learn_line_count);
+
+    if (p_learn_dataset->total_learn_line_count <= 0)
+    {
+        fclose(p_file_in);
+        return NN_FALSE;
+    }
+
+    p_learn_dataset->p_learn_lines = malloc(sizeof(NN_learn_line_t)* p_learn_dataset->total_learn_line_count);
+
+    for (int i = 0; i < p_learn_dataset->total_learn_line_count; ++i)
+    {
+        if (s_NN_alloc_line(p_loading_params, &p_learn_dataset->p_learn_lines[i]) == NN_FALSE)
+        {
+            fclose(p_file_in);
+            return NN_FALSE;
+        }
+        if (s_NN_learn_line_parse(p_file_in, p_loading_params, &p_learn_dataset->p_learn_lines[i]) == NN_FALSE)
+        {
+            fclose(p_file_in);
+            return NN_FALSE;
+        }
+    }
+    
     return NN_TRUE;
 }

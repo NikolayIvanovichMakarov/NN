@@ -2,6 +2,7 @@
 #include "NN_types.h"
 #include "NN_parsing.h"
 #include "NN_core.h"
+#include "NN_learn_dataset.h"
 
 typedef struct 
 {
@@ -54,6 +55,7 @@ int get_max_value(double const * const p_values, const size_t size)
 int main()
 {
     NN_configure_t loading_params;
+    NN_learn_dataset_t learn_dataset;
     double weights[] = 
     {
         -7.681681,  -0.697996,  5.810765, 
@@ -83,6 +85,11 @@ int main()
     if (NN_parse("game.nc", &loading_params) == NN_TRUE)
     {
         printf("parsing ... ok\n");
+
+        if (NN_learn_dataset_parse("game.lds", &loading_params, &learn_dataset ) == NN_TRUE)
+        {
+            NN_debug_print_learn_dataset(&loading_params, &learn_dataset);
+        }
         print_configure_params(&loading_params);
         if (NN_build(&loading_params) == NN_TRUE)
         {
@@ -90,34 +97,31 @@ int main()
             NN_initialize_weights_with(&loading_params, weights_2, 31);
         }
     }
+
+
     double input[4];
     int correct_values;
-    int j;
+    int j, i;
+
     for (j = 0; j < 100000; ++j)
     {
         correct_values = 0;
-        for (int i  =0; i < MAX_SAMPLES; ++i)
+        for (i = 0; i < learn_dataset.total_learn_line_count; ++i)
         {
-            input[0] = samples[i].health;
-            input[1] = samples[i].knife;
-            input[2] = samples[i].gun;
-            input[3] = samples[i].enemy;
-            NN_push_values(&loading_params, input, 4);
+            NN_push_values(&loading_params, learn_dataset.p_learn_lines[i].p_inputs, loading_params.neurons_count[0]);
+     
             NN_feed_forward(&loading_params);
-            //NN_debug_print_weights_into_file(&loading_params, "weights.txt");
-            if (NN_get_result(&loading_params) == get_max_value(samples[i].out,4))
+
+            if (NN_get_result(&loading_params) == get_max_value(learn_dataset.p_learn_lines[i].p_targets, loading_params.neurons_count[loading_params.layer_count-1]))
                 ++correct_values;
-            //NN_debug_print_neurons_into_file(&loading_params, "neurons.txt");
-            s_NN_calculate_errors(&loading_params,samples[i].out);
-            //NN_debug_print_errors_into_file(&loading_params, "errors.txt");
-            //NN_debug_print_errors(&loading_params);
+            
+            s_NN_calculate_errors(&loading_params, learn_dataset.p_learn_lines[i].p_targets);
+
             s_NN_update_weights(&loading_params,0.2);
         }
         if ((j % 1000) == 0)
             printf("correct_values = %lf\n", ((double)correct_values)/MAX_SAMPLES);
-
     }
-
 
     return 0;
 }

@@ -1,3 +1,6 @@
+#include "NN_types.h"
+#include "NN_configure.h"
+#include <stdlib.h>
 NN_BOOL NN_build(NN_configure_t const * const p_configure_params);
 
 void NN_initialize_weights_with( NN_configure_t const * const p_configure, double const * const p_weights, const size_t weight_count);
