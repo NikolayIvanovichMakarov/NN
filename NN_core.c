@@ -1,5 +1,6 @@
 #include "NN_configure.h"
 #include "NN_types.h"
+#include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -124,7 +125,7 @@ void NN_initialize_weights_with(NN_configure_t const * const p_configure, double
     {
         for (neuron_i = 0; neuron_i < ALL_NEURON_AT_LAYER(p_configure,layer_i) && (w_count < weight_count); ++neuron_i)
         {
-            for (next_layer_neuron_i = 0; next_layer_neuron_i < p_configure->neurons_count[layer_i+1] && (w_count < weight_count); ++next_layer_neuron_i)
+            for (next_layer_neuron_i = 0; (next_layer_neuron_i < p_configure->neurons_count[layer_i+1]) && (w_count < weight_count); ++next_layer_neuron_i)
             {
                 s_g_NN_weights[layer_i][neuron_i][next_layer_neuron_i] = p_weights[w_count];
                 ++w_count;

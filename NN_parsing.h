@@ -14,3 +14,6 @@ NN_BOOL NN_parse(char const * const str_filename, NN_configure_t * const p_loadi
 
 NN_BOOL NN_learn_dataset_parse(char const * const str_filename, NN_configure_t const * const p_loading_params, NN_learn_dataset_t * const p_learn_dataset );
 
+int NN_weights_parse(char const * const str_filename,double * const p_weights);
+
+char* NN_get_parse_error();

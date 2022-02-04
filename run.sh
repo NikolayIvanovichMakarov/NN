@@ -1,0 +1,1 @@
+./program Data/game.nc Data/game.lds Data/game.w
