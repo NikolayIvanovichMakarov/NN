@@ -2,6 +2,7 @@
 #define LEARN_LINE_H
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "NN_types.h"
 #include "NN_configure.h"
 

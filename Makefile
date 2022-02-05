@@ -1,7 +1,7 @@
 ARCH_BITS=64 # разрядность ОС 
 
 EXECUTABLE=program
-CC=gcc
+CC=clang
 CFLAGS=-m$(ARCH_BITS)
 LDFLAGS=-lm
 

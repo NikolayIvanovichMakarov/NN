@@ -9,7 +9,7 @@ void NN_initialize_weights_with( NN_configure_t const * const p_configure, doubl
 
 // result section
 int NN_get_result(NN_configure_t const * const p_configure);
-
+int NN_get_total_weights_count(NN_configure_t const * const p_configure_params);
 
 // function for backpropagation
 void NN_push_values(NN_configure_t const * const p_configure, double const * const p_values, const size_t value_count);

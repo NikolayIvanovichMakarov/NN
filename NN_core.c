@@ -24,6 +24,17 @@ double sigmoid_derivative(double val)
     return (val * (1.0 - val));
 }
 
+int NN_get_total_weights_count(NN_configure_t const * const p_configure_params)
+{
+    int total_weights_count = 0;
+    int layer_i;
+    for (layer_i = 0; layer_i < LAST_LAYER(p_configure_params); ++layer_i)
+    {
+        total_weights_count += ALL_NEURON_AT_LAYER(p_configure_params,layer_i) * p_configure_params->neurons_count[layer_i+1];
+    }
+    return total_weights_count;
+}
+
 static void NN_free_neurons(NN_configure_t const * const p_configure_params)
 {
     int layer_i;
