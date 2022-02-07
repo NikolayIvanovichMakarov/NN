@@ -200,7 +200,6 @@ int main(int argc, char ** argv)
             pop_size = 200;
             a = -10.0;               // Границы интервела поиска
             b = 10.0;                //
-            printf("total weights %d\n", NN_get_total_weights_count(&loading_params));
             N = NN_get_total_weights_count(&loading_params);               // Размерность задачи. Вектор весов
             FEV = 10000000;             // Кол-во вычислений
             best_fitness = 10000;    // лучшая пригодность
@@ -218,11 +217,8 @@ int main(int argc, char ** argv)
             u = malloc(sizeof(double) * N);
             
             //DE starts
-            printf("generate population ... \n");
             generatin_population (population, pop_size, a, b, N);
-            printf("copying array ... \n");
             copy_array(population, population_new, pop_size, N);
-            printf("initialize... \n");
 
             for ( i=0; i < pop_size; i++)
             {
@@ -240,8 +236,7 @@ int main(int argc, char ** argv)
                     
                 }
             }
-
-            printf("while ... \n");
+            
             while (FEV>0)
             {
 
