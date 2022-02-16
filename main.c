@@ -144,6 +144,7 @@ int main(int argc, char ** argv)
     {
         strcpy(str_file_name_w, argv[3]);
     }
+
     printf("parsing NN...\n");
     if (NN_parse(str_file_name_nc, &loading_params) != NN_TRUE)
     {
@@ -169,7 +170,12 @@ int main(int argc, char ** argv)
     initial_weights_count = NN_weights_parse(str_file_name_w,initial_weights);
     NN_initialize_weights_with(&loading_params, initial_weights, initial_weights_count);
 
+    printf("choose the learn mode (0 - BP, 1 - DE)\n");
+    scanf("%d",&learn_mode);
+
     printf("\n");
+
+
     switch(learn_mode)
     {
         case BACK_PROPAGATION:
@@ -187,11 +193,11 @@ int main(int argc, char ** argv)
                 }
                 if ((j % 1000) == 0)
                 {
-                    printf("correct_values = %lf\n", ((double)correct_values)/learn_dataset.total_learn_line_count );
+                    printf("correct_values = %lf\n", 1.0-((double)correct_values)/learn_dataset.total_learn_line_count );
                 }
                 if (correct_values == learn_dataset.total_learn_line_count)
                 {
-                    printf("correct_values = %lf\n", ((double)correct_values)/learn_dataset.total_learn_line_count );
+                    printf("correct_values = %lf\n", 1.0-((double)correct_values)/learn_dataset.total_learn_line_count );
                     fl_steel_learn = NN_FALSE;
                 }
             }
@@ -200,7 +206,6 @@ int main(int argc, char ** argv)
             pop_size = 200;
             a = -10.0;               // Границы интервела поиска
             b = 10.0;                //
-            printf("total weights %d\n", NN_get_total_weights_count(&loading_params));
             N = NN_get_total_weights_count(&loading_params);               // Размерность задачи. Вектор весов
             FEV = 10000000;             // Кол-во вычислений
             best_fitness = 10000;    // лучшая пригодность
@@ -241,15 +246,14 @@ int main(int argc, char ** argv)
                 }
             }
 
-            printf("while ... \n");
-            while (FEV>0)
+            while (FEV>0 && best_fitness >0.0)
             {
 
                 for ( i=0; i < pop_size; i++)
                 {
                     indecies_generation(&r1,&r2,&r3, pop_size);
-                    double CR = RANDOM()*(0.9-0.1)-0.1;
-                    double F = RANDOM()*(0.9-0.1)-0.1;
+                    double CR = RANDOM();//RANDOM()*(0.9-0.1)-0.1;
+                    double F = RANDOM();//RANDOM()*(0.9-0.1)-0.1;
                     int jrand = RANDOM()*(N-1);
 
                     for ( j=0; j < N; j++)
@@ -277,7 +281,7 @@ int main(int argc, char ** argv)
                         }
                         if (test < best_fitness)
                         {
-                            printf("bf2 = %lf\n",test);
+                            printf("correct_values = %lf\n",test);
                             best_fitness = test;
                         }
                     }
